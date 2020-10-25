@@ -11,7 +11,7 @@ We will disable UI pages that visualize data logged using these features as we c
 Install the client-ng branch to get a compatible wandb client.
 
 ```
-pip install git+https://github.com/wandb/client-ng.git@feature/artifact-tables
+pip install git+https://github.com/wandb/client.git@feature/artifact-media
 ```
 
 install requirements
