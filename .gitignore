@@ -3,3 +3,4 @@ bdd100k
 .python-version
 wandb/
 .ipynb_checkpoints
+artifacts
