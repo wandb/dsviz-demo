@@ -4,3 +4,4 @@ bdd100k
 wandb/
 .ipynb_checkpoints
 artifacts
+*.pkl
