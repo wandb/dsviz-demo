@@ -142,7 +142,7 @@ class ExampleSegmentationModel:
         return model
     
 def iou(mask_a, mask_b, class_id):
-    return ((mask_a == class_id) & (mask_b == class_id)).sum(axis=(1,2)) / ((mask_a == class_id) | (mask_b == class_id)).sum(axis=(1,2))
+    return np.nan_to_num(((mask_a == class_id) & (mask_b == class_id)).sum(axis=(1,2)) / ((mask_a == class_id) | (mask_b == class_id)).sum(axis=(1,2)), 0, 0, 0)
 
 def score_model(model, x_data, mask_data, n_classes):
     results = model.predict(x_data)
