@@ -4,6 +4,7 @@ import shutil
 import matplotlib.pyplot as plt
 import numpy as np
 import cv2
+import wandb
 
 BDD_CLASSES = [
     'road', 'sidewalk', 'building', 'wall', 'fence', 'pole', 'traffic light',
@@ -89,3 +90,70 @@ def mask_to_bounding(np_image):
                 "class_id" : id_num,          
             })
     return data
+
+def get_scaled_train_image(ndx, factor=2):
+    return downscale_image(cv2.cvtColor(cv2.imread(get_train_image_path(ndx)), cv2.COLOR_BGR2RGB), factor)
+
+def get_scaled_mask_label(ndx, factor=2):
+    return downsample_image(cv2.imread(get_label_image_path(ndx))[:,:,0], factor)
+
+def get_scaled_bounding_boxes(ndx, factor=2):
+    return mask_to_bounding(downsample_image(cv2.imread(get_label_image_path(ndx))[:,:,0], factor))
+
+def get_scaled_color_mask(ndx, factor=2):
+    return downscale_image(cv2.cvtColor(cv2.imread(get_color_label_image_path(ndx)), cv2.COLOR_BGR2RGB), factor)
+
+def get_dominant_class(label_mask):
+    return BDD_CLASSES[get_dominant_id_ndx(label_mask)]
+
+## Model training logic:
+import numpy as np
+import pickle
+
+class ExampleSegmentationModel:
+    def __init__(self, n_classes):
+        self.n_classes = n_classes
+        
+    def train(self, images, masks):
+        self.min = images.min()
+        self.max = images.max()
+        images = (images - self.min) / (self.max - self.min)
+        step = 1.0 / n_classes
+        self.quantiles = list(np.quantile(images, [i * step for i in range(self.n_classes)]))
+        self.quantiles.append(1.0)
+        self.outshape = masks.shape
+        
+    def predict(self, images):
+        results = np.zeros((images.shape[0], self.outshape[1], self.outshape[2]))
+        images = ((images - self.min) / (self.max - self.min)).mean(axis=3)
+        for i in range(self.n_classes):
+            results[(self.quantiles[i] < images) & (images <= self.quantiles[i+1])] = BDD_IDS[i]
+        return results
+    
+    def save(self, file_path):
+        with open(file_path, "wb") as file:
+            pickle.dump(self, file)
+    
+    @staticmethod
+    def load(file_path):
+        model = None
+        with open(file_path, "rb") as file:
+            model = pickle.load(file)
+        return model
+    
+def iou(mask_a, mask_b, class_id):
+    return ((mask_a == class_id) & (mask_b == class_id)).sum(axis=(1,2)) / ((mask_a == class_id) | (mask_b == class_id)).sum(axis=(1,2))
+
+def score_model(model, x_data, mask_data, n_classes):
+    results = model.predict(x_data)
+    return np.array([iou(results, mask_data, i) for i in BDD_IDS]).T, results
+
+def make_datasets(data_table, n_classes):
+    n_samples = len(data_table.data)
+    n_classes = len(BDD_CLASSES)
+    height = data_table.data[0][1]._image.height
+    width = data_table.data[0][1]._image.width
+
+    train_data = np.array([np.array(data_table.data[i][1]._image.getdata()).reshape(height, width, 3) for i in range(n_samples)])
+    mask_data = np.array([np.array(data_table.data[i][3]._image.getdata()).reshape(height, width) for i in range(n_samples)])
+    return train_data, mask_data

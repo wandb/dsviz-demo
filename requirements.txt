@@ -1,3 +1,8 @@
-numpy
-tqdm
-pillow
+pandas 
+matplotlib 
+opencv-python 
+ipywidgets 
+numpy 
+pillow 
+tqdm 
+wandb
