@@ -5,6 +5,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import cv2
 import wandb
+import time
+import pandas as pd
 
 BDD_CLASSES = [
     'road', 'sidewalk', 'building', 'wall', 'fence', 'pole', 'traffic light',
@@ -157,3 +159,19 @@ def make_datasets(data_table, n_classes):
     train_data = np.array([np.array(data_table.data[i][1]._image.getdata()).reshape(height, width, 3) for i in range(n_samples)])
     mask_data = np.array([np.array(data_table.data[i][3]._image.getdata()).reshape(height, width) for i in range(n_samples)])
     return train_data, mask_data
+
+class TimeLogger:
+    def __init__(self, display=True):
+        self.display = display
+        self.marks = []
+        self.start = time.time()
+        self.marks.append([0, "Start", self.start, 0.0, 0.0])
+        
+    def mark(self, mark="", method=""):
+        mark_time = time.time()
+        self.marks.append([mark, method, mark_time, mark_time - self.marks[0][2], mark_time - self.marks[-1][2]])
+        if self.display:
+            print(self.marks[-1])
+            
+    def as_df(self):
+        return pd.DataFrame(self.marks, columns=["Mark", "Method", "Time", "TotalTime", "IncTime"])
