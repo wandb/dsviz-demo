@@ -25,7 +25,7 @@ train_dir = os.path.join(bdd_dir, 'images', 'train')
 color_labels_dir = os.path.join(bdd_dir, 'color_labels', 'train')
 labels_dir = os.path.join(bdd_dir, 'labels', 'train')
 
-train_ids = [name.split(".")[0] for name in os.listdir(train_dir)]
+train_ids = None
 
 def download_data():
     if not os.path.exists("bdd100k.tgz"):
@@ -35,20 +35,29 @@ def download_data():
     if not os.path.exists("bdd100k"):
         print("Extracting data...")
         os.system('tar xzf bdd100k.tgz')
+        
+    train_ids = [name.split(".")[0] for name in os.listdir(train_dir)]
     
     print("Raw data downlaoded to ./bdd100k.")
 
 def show_image(path):
     plt.imshow(cv2.cvtColor(cv2.imread(path), cv2.COLOR_BGR2RGB))
     plt.show()
+
+def _check_train_ids():
+    if train_ids is None:
+        raise Exception("Please download the data using util.download_data() before attempting to access it.")
     
 def get_train_image_path(ndx):
+    _check_train_ids()
     return os.path.join(train_dir, train_ids[ndx] + ".jpg")
 
 def get_color_label_image_path(ndx):
+    _check_train_ids()
     return os.path.join(color_labels_dir, train_ids[ndx] + "_train_color.png")
 
 def get_label_image_path(ndx):
+    _check_train_ids()
     return os.path.join(labels_dir, train_ids[ndx] + "_train_id.png")
 
 def get_dominant_id_ndx(np_image):
