@@ -35,7 +35,7 @@ def download_data():
         print("Extracting data...")
         os.system('tar xzf bdd100k.tgz')
         
-    train_ids = [name.split(".")[0] for name in os.listdir(train_dir)]
+    train_ids = [name.split(".")[0] for name in os.listdir(train_dir) if name.split(".")[0] != ""]
     
     print("Raw data downlaoded to ./bdd100k.")
 
