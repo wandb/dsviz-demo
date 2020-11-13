@@ -1,9 +1,6 @@
-pandas 
+jupyterlab
 matplotlib 
-opencv-python 
 ipywidgets 
 numpy 
 Pillow 
-tqdm 
 wandb
-jupyterlab
