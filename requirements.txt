@@ -3,6 +3,6 @@ matplotlib
 opencv-python 
 ipywidgets 
 numpy 
-pillow 
+Pillow 
 tqdm 
 wandb

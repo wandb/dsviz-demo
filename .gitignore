@@ -5,3 +5,4 @@ wandb/
 .ipynb_checkpoints
 artifacts
 *.pkl
+__pycache__

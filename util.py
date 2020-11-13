@@ -3,10 +3,8 @@ import os
 import shutil
 import matplotlib.pyplot as plt
 import numpy as np
-import cv2
+from PIL import Image
 import wandb
-import time
-import pandas as pd
 
 BDD_CLASSES = [
     'road', 'sidewalk', 'building', 'wall', 'fence', 'pole', 'traffic light',
@@ -28,6 +26,7 @@ labels_dir = os.path.join(bdd_dir, 'labels', 'train')
 train_ids = None
 
 def download_data():
+    global train_ids
     if not os.path.exists("bdd100k.tgz"):
         print("Downloading data from https://storage.googleapis.com/l2kzone/bdd100k.tgz...")
         os.system('curl https://storage.googleapis.com/l2kzone/bdd100k.tgz --output bdd100k.tgz')
@@ -41,7 +40,7 @@ def download_data():
     print("Raw data downlaoded to ./bdd100k.")
 
 def show_image(path):
-    plt.imshow(cv2.cvtColor(cv2.imread(path), cv2.COLOR_BGR2RGB))
+    plt.imshow(Image.open(path))
     plt.show()
 
 def _check_train_ids():
@@ -64,12 +63,6 @@ def get_dominant_id_ndx(np_image):
     if isinstance(np_image, wandb.Image):
         np_image = np.array(np_image._image)
     return BDD_ID_MAP[np.argmax(np.bincount(np_image.astype(int).flatten()))]
-
-def downsample_image(image, factor=2):
-    return image[::factor, ::factor]
-
-def downscale_image(image, factor=2):
-    return cv2.resize(image, downsample_image(image, factor).shape[:2][::-1])
 
 def clean_artifacts_dir():
     if os.path.isdir("artifacts"):
@@ -103,16 +96,16 @@ def mask_to_bounding(np_image):
     return data
 
 def get_scaled_train_image(ndx, factor=2):
-    return downscale_image(cv2.cvtColor(cv2.imread(get_train_image_path(ndx)), cv2.COLOR_BGR2RGB), factor)
+    return Image.open(get_train_image_path(ndx)).reduce(factor)
 
 def get_scaled_mask_label(ndx, factor=2):
-    return downsample_image(cv2.imread(get_label_image_path(ndx))[:,:,0], factor)
+    return np.array(Image.open(get_label_image_path(ndx)).reduce(factor))
 
 def get_scaled_bounding_boxes(ndx, factor=2):
-    return mask_to_bounding(downsample_image(cv2.imread(get_label_image_path(ndx))[:,:,0], factor))
+    return mask_to_bounding(np.array(Image.open(get_label_image_path(ndx)).reduce(factor)))
 
 def get_scaled_color_mask(ndx, factor=2):
-    return downscale_image(cv2.cvtColor(cv2.imread(get_color_label_image_path(ndx)), cv2.COLOR_BGR2RGB), factor)
+    return Image.open(get_color_label_image_path(ndx)).reduce(factor)
 
 def get_dominant_class(label_mask):
     return BDD_CLASSES[get_dominant_id_ndx(label_mask)]
@@ -165,22 +158,6 @@ def make_datasets(data_table, n_classes):
     height = data_table.data[0][1]._image.height
     width = data_table.data[0][1]._image.width
 
-    train_data = np.array([np.array(data_table.data[i][1]._image.getdata()).reshape(height, width, 3) for i in range(n_samples)])
-    mask_data = np.array([np.array(data_table.data[i][3]._image.getdata()).reshape(height, width) for i in range(n_samples)])
+    train_data = np.array([np.array(data_table.data[i][1]._image).reshape(height, width, 3) for i in range(n_samples)])
+    mask_data = np.array([np.array(data_table.data[i][3]._image).reshape(height, width) for i in range(n_samples)])
     return train_data, mask_data
-
-class TimeLogger:
-    def __init__(self, display=True):
-        self.display = display
-        self.marks = []
-        self.start = time.time()
-        self.marks.append([0, "Start", self.start, 0.0, 0.0])
-        
-    def mark(self, mark="", method=""):
-        mark_time = time.time()
-        self.marks.append([mark, method, mark_time, mark_time - self.marks[0][2], mark_time - self.marks[-1][2]])
-        if self.display:
-            print(self.marks[-1])
-            
-    def as_df(self):
-        return pd.DataFrame(self.marks, columns=["Mark", "Method", "Time", "TotalTime", "IncTime"])
